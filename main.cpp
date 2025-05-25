@@ -15,7 +15,7 @@ using namespace sf;
 
 struct CustomState
 {
-    string state; // "init" , "start" , "start_screen"
+    string state; // "init" , "start" , "start_screen" , "finish"
     string mode;  // "levels", "randomize", "Creative"
 };
 
@@ -180,94 +180,216 @@ int main()
         }
         else if (state.mode == "levels")
         {
-            // Handle custom state changes
-            if (Keyboard::isKeyPressed(Keyboard::Key::Space))
+            if (level <= 5)
             {
+                static Clock startPhaseClock;
+                int initblocks = (level * 5) + 5;
+                int endblocks = (level * 5) + 10;
+
+                if (Keyboard::isKeyPressed(Keyboard::Key::Space))
+                {
+                    if (state.state == "init")
+                    {
+                        startPhaseClock.restart();
+                        state.state = "start";
+                    }
+                }
+
+                static tgui::Label::Ptr spaceLabel;
                 if (state.state == "init")
                 {
-                    state.state = "start";
-                }
-            }
-
-            // Draw the grid
-            for (int row = 0; row < GRID_SIZE; ++row)
-            {
-                for (int col = 0; col < GRID_SIZE; ++col)
-                {
-                    RectangleShape cell(Vector2f(cellWidth, cellHeight));
-                    cell.setPosition(Vector2f(col * cellWidth, row * cellHeight));
-
-                    // Set cell color based on the state in the GOL game
-                    if (game.isAlive(row, col))
-                        cell.setFillColor(Color::Green);
-                    else
-                        cell.setFillColor(Color::White);
-
-                    cell.setOutlineThickness(1);
-                    cell.setOutlineColor(Color::Black);
-
-                    window.draw(cell);
-                }
-            }
-
-            if (state.state == "init")
-            {
-                // Handle mouse clicks to toggle cell state
-                static Clock clickClock;
-                if (clickClock.getElapsedTime().asMilliseconds() > 500 && Mouse::isButtonPressed(Mouse::Button::Left))
-                {
-                    Vector2i mousePos = Mouse::getPosition(window);
-                    int row = mousePos.y / (GOL_SIZE / GRID_SIZE);
-                    int col = mousePos.x / (GOL_SIZE / GRID_SIZE);
-
-                    if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE)
+                    if (!spaceLabel) // Ensure the label is only created once
                     {
-                        game.toggleBlock(row, col);
+                        spaceLabel = tgui::Label::create("Press Space to start");
+                        spaceLabel->setTextSize(15);
+                        spaceLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                        spaceLabel->setPosition({"2%", "95%"});
+                        spaceLabel->getRenderer()->setTextColor(tgui::Color::White);
+                        gui.add(spaceLabel);
                     }
-                    clickClock.restart();
+
+                    if (game.getAlive() < initblocks)
+                    {
+                        // Handle mouse clicks to toggle cell state
+                        static Clock clickClock;
+                        if (clickClock.getElapsedTime().asMilliseconds() > 500 && Mouse::isButtonPressed(Mouse::Button::Left))
+                        {
+                            Vector2i mousePos = Mouse::getPosition(window);
+                            int row = mousePos.y / (GOL_SIZE / GRID_SIZE);
+                            int col = mousePos.x / (GOL_SIZE / GRID_SIZE);
+
+                            if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE)
+                            {
+                                game.toggleBlock(row, col);
+                                sound.play();
+                            }
+                            clickClock.restart();
+                        }
+                    }
+                }
+
+                // Remove the label once the game starts
+                if (state.state == "start" && spaceLabel)
+                {
+                    gui.remove(spaceLabel);
+                    spaceLabel = nullptr;
+                }
+
+                // Display game stats
+                static tgui::Label::Ptr statsLabel;
+                if (!statsLabel)
+                {
+                    statsLabel = tgui::Label::create();
+                    statsLabel->setTextSize(11);
+                    statsLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                    statsLabel->setPosition({"2%", "90%"});
+                    statsLabel->getRenderer()->setTextColor(tgui::Color::White);
+                    gui.add(statsLabel);
+                }
+
+                // Update stats
+                std::stringstream statsStream;
+                statsStream << "Level: " << level << "\n"
+                            << "Alive Cells: " << game.getAlive() << "\n"
+                            << "You have to place " << initblocks << " so that " << endblocks << " are there in 10 seconds\n";
+                statsLabel->setText(statsStream.str());
+
+                // Draw the grid
+                for (int row = 0; row < GRID_SIZE; ++row)
+                {
+                    for (int col = 0; col < GRID_SIZE; ++col)
+                    {
+                        RectangleShape cell(Vector2f(cellWidth, cellHeight));
+                        cell.setPosition(Vector2f(col * cellWidth, row * cellHeight));
+
+                        // Set cell color based on the state in the GOL game
+                        if (game.isAlive(row, col))
+                            cell.setFillColor(Color::Green);
+                        else
+                            cell.setFillColor(Color::White);
+
+                        cell.setOutlineThickness(1);
+                        cell.setOutlineColor(Color::Black);
+
+                        window.draw(cell);
+                    }
+                }
+
+                if (state.state == "start")
+                {
+                    static Clock updateClock;
+                    static tgui::Label::Ptr timerLabel;
+                    if (startPhaseClock.getElapsedTime().asSeconds() <= 10.0f) // Stop updating after 10 seconds
+                    {
+                        if (updateClock.getElapsedTime().asMilliseconds() >= 100)
+                        {
+                            game.update();
+                            updateClock.restart();
+                        }
+
+                        // Display the remaining time
+                        if (!timerLabel)
+                        {
+                            timerLabel = tgui::Label::create();
+                            timerLabel->setTextSize(15);
+                            timerLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                            timerLabel->setPosition({"2%", "95%"});
+                            timerLabel->getRenderer()->setTextColor(tgui::Color::White);
+                            gui.add(timerLabel);
+                        }
+
+                        float remainingTime = 10.0f - startPhaseClock.getElapsedTime().asSeconds();
+                        std::stringstream timerStream;
+                        timerStream << "Time Remaining: " << std::fixed << std::setprecision(1) << remainingTime << "s";
+                        timerLabel->setText(timerStream.str());
+                    }
+                    else
+                    {
+                        // Remove the timer label
+                        if (timerLabel)
+                        {
+                            gui.remove(timerLabel);
+                            timerLabel = nullptr;
+                        }
+                        state.state = "finish"; // Transition back to init state after 10 seconds
+                    }
+
+
+                    if(game.getAlive() == 0){
+                        state.state = "finish";
+                    }
+                }
+
+                if (state.state == "finish")
+                {
+
+                    if (game.getAlive() >= endblocks)
+                    {
+                        // Show a button to proceed to the next level
+                        static tgui::Button::Ptr nextLevelButton;
+                        if (!nextLevelButton)
+                        {
+                            nextLevelButton = tgui::Button::create("Next Level");
+                            nextLevelButton->setSize({"20%", "5%"});
+                            nextLevelButton->setPosition({"75%", "90%"});
+                            nextLevelButton->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                            nextLevelButton->onPress([&]()
+                                                     {
+                                     level++;
+                                     startPhaseClock.restart(); // Restart the timer
+                                     state.state = "init";
+                                     game.clear();
+                                     gui.remove(nextLevelButton);
+                                     nextLevelButton = nullptr; });
+                            gui.add(nextLevelButton);
+                        }
+                    }
+                    else
+                    {
+                        // Show a button to restart the current level
+                        static tgui::Button::Ptr restartLevelButton;
+                        if (!restartLevelButton)
+                        {
+                            restartLevelButton = tgui::Button::create("Restart Level");
+                            restartLevelButton->setSize({"20%", "5%"});
+                            restartLevelButton->setPosition({"75%", "90%"});
+                            restartLevelButton->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                            restartLevelButton->onPress([&]()
+                                                        {
+                                         startPhaseClock.restart(); // Restart the timer
+                                         state.state = "init";
+                                         game.clear();
+                                         gui.remove(restartLevelButton);
+                                         restartLevelButton = nullptr; });
+                            gui.add(restartLevelButton);
+                        }
+                    }
                 }
             }
 
-            // Display game stats
-            static tgui::Label::Ptr statsLabel;
-            if (!statsLabel)
+            if (level > 5)
             {
-                statsLabel = tgui::Label::create();
-                statsLabel->setTextSize(11);
-                statsLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
-                statsLabel->setPosition({"2%", "90%"});
-                statsLabel->getRenderer()->setTextColor(tgui::Color::White);
-                gui.add(statsLabel);
+                // Clear screen
+                window.clear();
+                game.clear();
+
+                // Display large centered "You Win!" text
+                static tgui::Label::Ptr winLabel;
+                if (!winLabel) // Ensure the label is only created once
+                {
+                    winLabel = tgui::Label::create("You Win!");
+                    winLabel->setTextSize(40);
+                    winLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                    winLabel->setPosition({"33%", "40%"});
+                    winLabel->getRenderer()->setTextColor(tgui::Color::White);
+                    gui.add(winLabel);
+                }
             }
 
-            // Update stats
-            std::stringstream statsStream;
-            statsStream << "Level: " << level << "\n"
-                        << "Alive Cells: " << game.getAlive() << "\n";
-            statsLabel->setText(statsStream.str());
-
-            // Display a message to press Space to start
-            static tgui::Label::Ptr spaceLabel;
-            if (state.state != "start")
-            {
-                spaceLabel = tgui::Label::create("Press Space to start");
-                spaceLabel->setTextSize(15);
-                spaceLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
-                spaceLabel->setPosition({"2%", "95%"});
-                spaceLabel->getRenderer()->setTextColor(tgui::Color::White);
-                gui.add(spaceLabel);
-            }
-
-            // Remove the label once the game starts
-            if (state.state == "start" && spaceLabel)
-            {
-                gui.remove(spaceLabel);
-                spaceLabel = nullptr;
-            }
-
-            // Draw the GUI elements
+            // Draw the GUI to ensure all elements are displayed
             gui.draw();
         }
+
         else if (state.mode == "randomize")
         {
             if (random)
