@@ -94,7 +94,7 @@ public:
 
         grid = newGrid;
     }
-
+   
 
 
     void randomize() {
