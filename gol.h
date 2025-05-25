@@ -46,6 +46,19 @@ public:
             std::cout << "\n";
         }
     }
+    
+    int getAlive() const {
+        int count = 0;
+        for (const auto& row : grid) {
+            for (const auto& block : row) {
+                if (block.isAlive) {
+                    ++count;
+                }
+            }
+        }
+        return count;
+    }
+
 
     bool isAlive(int x, int y) const {
         return isValid(x, y) ? grid[x][y].isAlive : false;
@@ -68,7 +81,7 @@ public:
     }
 
 
-    void update(sf::Sound alive) {
+    void update() {
         std::vector<std::vector<Block>> newGrid = grid;
 
         for (int i = 0; i < grid.size(); ++i) {
@@ -85,7 +98,7 @@ public:
                 } else {
                     // Birth
                     if (aliveNeighbors == 3) {
-                        alive.play();
+                        // alive.play();
                         newGrid[i][j].isAlive = true;
                     }
                 }
@@ -95,6 +108,7 @@ public:
         grid = newGrid;
     }
    
+
 
 
     void randomize() {
