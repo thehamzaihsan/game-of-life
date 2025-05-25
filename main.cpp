@@ -320,7 +320,7 @@ int main()
             // Update stats
             std::stringstream statsStream;
             statsStream << "Random Mode\n"
-                << "Alive Cells: " << game.getAlive() << "\n";
+                        << "Alive Cells: " << game.getAlive() << "\n";
             statsLabel->setText(statsStream.str());
 
             // Draw the grid
@@ -356,7 +356,108 @@ int main()
 
             gui.draw();
         }
+        else if (state.mode == "Creative")
+        {
+            // Handle custom state changes
+            if (Keyboard::isKeyPressed(Keyboard::Key::Space))
+            {
+                if (state.state == "init")
+                {
+                    state.state = "start";
+                }
+            }
 
+            // Draw the grid
+            for (int row = 0; row < GRID_SIZE; ++row)
+            {
+                for (int col = 0; col < GRID_SIZE; ++col)
+                {
+                    RectangleShape cell(Vector2f(cellWidth, cellHeight));
+                    cell.setPosition(Vector2f(col * cellWidth, row * cellHeight));
+
+                    // Set cell color based on the state in the GOL game
+                    if (game.isAlive(row, col))
+                        cell.setFillColor(Color::Green);
+                    else
+                        cell.setFillColor(Color::White);
+
+                    cell.setOutlineThickness(1);
+                    cell.setOutlineColor(Color::Black);
+
+                    window.draw(cell);
+                }
+            }
+
+            if (state.state == "init")
+            {
+                // Handle mouse clicks to toggle cell state
+                static Clock clickClock;
+                if (clickClock.getElapsedTime().asMilliseconds() > 500 && Mouse::isButtonPressed(Mouse::Button::Left))
+                {
+                    Vector2i mousePos = Mouse::getPosition(window);
+                    int row = mousePos.y / (GOL_SIZE / GRID_SIZE);
+                    int col = mousePos.x / (GOL_SIZE / GRID_SIZE);
+
+                    if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE)
+                    {
+                        game.toggleBlock(row, col);
+                        sound.play();
+                    }
+                    clickClock.restart();
+                }
+            }
+
+            static tgui::Label::Ptr spaceLabel;
+            if (state.state == "init")
+            {
+                if (!spaceLabel) // Ensure the label is only created once
+                {
+                    spaceLabel = tgui::Label::create("Press Space to start");
+                    spaceLabel->setTextSize(15);
+                    spaceLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                    spaceLabel->setPosition({"2%", "95%"});
+                    spaceLabel->getRenderer()->setTextColor(tgui::Color::White);
+                    gui.add(spaceLabel);
+                }
+            }
+
+            // Remove the label once the game starts
+            if (state.state == "start" && spaceLabel)
+            {
+                gui.remove(spaceLabel);
+                spaceLabel = nullptr;
+            }
+
+            // Display game stats
+            static tgui::Label::Ptr statsLabel;
+            if (!statsLabel)
+            {
+                statsLabel = tgui::Label::create();
+                statsLabel->setTextSize(11);
+                statsLabel->getRenderer()->setFont("gigantic.ttf"); // Set custom font
+                statsLabel->setPosition({"2%", "90%"});
+                statsLabel->getRenderer()->setTextColor(tgui::Color::White);
+                gui.add(statsLabel);
+            }
+
+            // Update stats
+            std::stringstream statsStream;
+            statsStream << "Creative Mode\n"
+                        << "Alive Cells: " << game.getAlive() << "\n";
+            statsLabel->setText(statsStream.str());
+
+            if (state.state == "start")
+            {
+                static Clock updateClock;
+                if (updateClock.getElapsedTime().asMilliseconds() >= 100)
+                {
+                    game.update();
+                    updateClock.restart();
+                }
+            }
+
+            gui.draw();
+        }
         window.display();
     }
 }
