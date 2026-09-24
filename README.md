@@ -2,6 +2,8 @@
 
 A feature-rich implementation of Conway's Game of Life using C++, SFML, and TGUI with multiple game modes and interactive gameplay.
 
+**Made by Hamzihsan and [Mazen Habib](https://github.com/Mazen-Habib)**
+
 ## Overview
 
 This project implements Conway's Game of Life, a cellular automaton where cells evolve based on simple rules. The game features three distinct modes: a level-based challenge system, a randomized mode, and a creative sandbox mode.
@@ -252,7 +254,9 @@ If sound doesn't play:
 
 This project is for educational purposes as part of a DAA (Design and Analysis of Algorithms) course project.
 
-## Author
+## Authors
+
+Made by **Hamzihsan** and **Mazen Habib** ([@Mazen-Habib](https://github.com/Mazen-Habib)).
 
 Developed as a university project for Design and Analysis of Algorithms course.
 
