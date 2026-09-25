@@ -8,6 +8,46 @@ A feature-rich implementation of Conway's Game of Life using C++, SFML, and TGUI
 
 This project implements Conway's Game of Life, a cellular automaton where cells evolve based on simple rules. The game features three distinct modes: a level-based challenge system, a randomized mode, and a creative sandbox mode.
 
+## How It Works
+
+### Architecture
+
+Two source files and two libraries: `main.cpp` runs the window, game loop and state machine, and `gol.h` holds the simulation.
+
+![Architecture: main.cpp, the GOL class, SFML and TGUI](diagrams/01-architecture.png)
+
+### Game Flow
+
+Every screen is a (mode, state) pair. Menu buttons, the Space key and the 10-second level timer move the game between them.
+
+![State machine for the start screen, Levels, Randomize and Creative modes](diagrams/02-state-machine.png)
+
+### One Frame of the Game Loop
+
+![The 8 steps main() runs every frame, with the 100 ms simulation clock separate from rendering](diagrams/03-frame-loop.png)
+
+### The Rules
+
+![Conway's four rules shown on 3x3 neighbourhoods, with the matching update() code](diagrams/04-rules.png)
+
+### The Update Algorithm
+
+Neighbours are counted with fixed offset arrays, results are written into a copy of the grid, and the copy replaces the grid. Each generation costs O(rows × cols).
+
+![Neighbour counting, double buffering and cost per generation](diagrams/05-update-algorithm.png)
+
+### Levels
+
+![Cells you place vs. cells needed after 10 seconds for all five levels](diagrams/07-level-progression.png)
+
+A Level 1 solution, simulated generation by generation: 10 cells grow to a peak of 84, then settle at a stable 40, well over the target of 15.
+
+![Level 1 seed at generations 0 to 60 with a population chart over 100 generations](diagrams/06-level1-evolution.png)
+
+### Pattern Behaviours
+
+![A still life, an oscillator and a glider over several generations](diagrams/08-pattern-behaviours.png)
+
 ## Features
 
 ### Game Modes

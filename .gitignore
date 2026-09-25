@@ -1,2 +1,4 @@
 # Portfolio screenshots and case-study guide (local only)
 portfolio/
+# Diagram sources (generated HTML has local absolute paths)
+diagrams/src/
